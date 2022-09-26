@@ -1,0 +1,73 @@
+diff --git a/BUILD.bazel b/BUILD.bazel
+index 62dd85b..20921f4 100644
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -12,6 +12,7 @@ go_library(
+     deps = [
+         "@com_github_aws_aws_cdk_go_awscdk_v2//:awscdk",
+         "@com_github_aws_aws_cdk_go_awscdk_v2//awscloudtrail",
++        "@com_github_aws_aws_cdk_go_awscdk_v2//awsec2",
+         "@com_github_aws_aws_cdk_go_awscdk_v2//awsiam",
+         "@com_github_aws_aws_cdk_go_awscdk_v2//awsimagebuilder",
+         "@com_github_aws_aws_cdk_go_awscdk_v2//awskms",
+diff --git a/cdk-ec2-image-builder-cardano-node.go b/cdk-ec2-image-builder-cardano-node.go
+index 0fe2d01..437cc3a 100644
+--- a/cdk-ec2-image-builder-cardano-node.go
++++ b/cdk-ec2-image-builder-cardano-node.go
+@@ -7,6 +7,7 @@ import (
+ 	"github.com/aws/aws-cdk-go/awscdk/v2"
+ 	// "github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+ 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudtrail"
++	"github.com/aws/aws-cdk-go/awscdk/v2/awsec2"
+ 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
+ 	"github.com/aws/aws-cdk-go/awscdk/v2/awsimagebuilder"
+ 	"github.com/aws/aws-cdk-go/awscdk/v2/awskms"
+@@ -132,6 +133,16 @@ func NewCdkEc2ImageBuilderCardanoNodeStack(scope constructs.Construct, id string
+ 		},
+ 	})
+ 
++	vpc := awsec2.Vpc_FromLookup(stack, jsii.String("Vpc"), &awsec2.VpcLookupOptions{
++		VpcId: jsii.String("vpc-090aa091062fb61d7"),
++	})
++
++	sg := awsec2.NewSecurityGroup(stack, jsii.String("SecurityGroup"), &awsec2.SecurityGroupProps{
++		Vpc:              vpc,
++		Description:      jsii.String(""),
++		AllowAllOutbound: jsii.Bool(true),
++	})
++
+ 	infrastructureConfiguration := awsimagebuilder.NewCfnInfrastructureConfiguration(stack, jsii.String("InfrastructureConfiguration"), &awsimagebuilder.CfnInfrastructureConfigurationProps{
+ 		InstanceProfileName: instanceProfile.Ref(),
+ 		Name:                jsii.String("cardano-node"),
+@@ -140,6 +151,10 @@ func NewCdkEc2ImageBuilderCardanoNodeStack(scope constructs.Construct, id string
+ 				S3BucketName: bucket.BucketName(),
+ 			},
+ 		},
++		SecurityGroupIds: &[]*string{
++			sg.SecurityGroupId(),
++		},
++		SubnetId: jsii.String("subnet-08ee302673c2183c0"),
+ 	})
+ 
+ 	awsimagebuilder.NewCfnImagePipeline(stack, jsii.String("ImagePipline"), &awsimagebuilder.CfnImagePipelineProps{
+@@ -331,15 +346,15 @@ func env() *awscdk.Environment {
+ 	// Account/Region-dependent features and context lookups will not work, but a
+ 	// single synthesized template can be deployed anywhere.
+ 	//---------------------------------------------------------------------------
+-	return nil
++	//return nil
+ 
+ 	// Uncomment if you know exactly what account and region you want to deploy
+ 	// the stack to. This is the recommendation for production stacks.
+ 	//---------------------------------------------------------------------------
+-	// return &awscdk.Environment{
+-	//  Account: jsii.String("123456789012"),
+-	//  Region:  jsii.String("us-east-1"),
+-	// }
++	return &awscdk.Environment{
++		Account: jsii.String("102933037533"),
++		Region:  jsii.String("us-east-1"),
++	}
+ 
+ 	// Uncomment to specialize this stack for the AWS Account and Region that are
+ 	// implied by the current CLI configuration. This is recommended for dev
